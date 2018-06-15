@@ -18,4 +18,5 @@ from localgraphclustering import spectral_partitioning_subgraph
 from localgraphclustering import MQI_fast
 from localgraphclustering import densest_subgraph_fast
 from localgraphclustering import capacity_releasing_diffusion_fast
+from localgraphclustering import capacity_releasing_diffusion
 from localgraphclustering import SimpleLocal_fast

@@ -1,8 +1,26 @@
 import numpy as np
-from unit_flow import unit_flow
+from localgraphclustering.unit_flow import unit_flow
 from scipy import sparse as sp
 
-def capacity_releasing_diffusion(ref_node,A,U=3,h=10,w=2,iterations=20, vol_G = []):
+class GraphAPI:
+  def __init__(self, A):
+    self.A = A
+  
+  @property
+  def shape(self):
+    return self.A.shape
+  
+  def get_degree(self, idx):
+    return float(self.A[idx,:].sum(axis=1))
+  
+  def get_neighbors(self, idx):
+    return self.A[idx,:].nonzero()[1]
+  
+  def dot(self, x):
+    return self.A.dot(x)
+
+
+def capacity_releasing_diffusion(ref_node,A,U=3,h=10,w=2,iterations=20, vol_G=[]):
     """Description
        -----------
        
@@ -73,21 +91,28 @@ def capacity_releasing_diffusion(ref_node,A,U=3,h=10,w=2,iterations=20, vol_G = 
                         The algorithm is terminated in this case and the best cluster in terms of 
                         conductance is returned. 
     """
+    
+    A = GraphAPI(A)
+    
     [n,n] = A.shape
-    if vol_G == []:
-        vol_G = sum(A.sum(axis=1))
+    
+    vol_G = None
+    # if vol_G == []:
+    #     vol_G = sum(A.sum(axis=1))
+    
     degree = {}
-
+    
     Delta = {}
     Delta0 = {}
+    
     for i in ref_node:
-        if not(degree.has_key(i)):
-            degree.update({i:A[i,:].sum(axis=1)[0,0]})
-        degree_val = degree[i]
-        Delta.update({i:2*degree_val})
-        Delta0.update({i:2*degree_val})
-        
-    cond_best = 100
+        # degree_val = float(A[i,:].sum(axis=1))
+        degree_val = A.get_degree(i)
+        degree[i]  = degree_val
+        Delta[i]   = 2 * degree_val
+        Delta0[i]  = 2 * degree_val
+    
+    cond_best = 100 # ??
     
     for i in range(iterations):
         l,f_v,ex = unit_flow(A, Delta, U, h, w, degree)
@@ -103,30 +128,32 @@ def capacity_releasing_diffusion(ref_node,A,U=3,h=10,w=2,iterations=20, vol_G = 
             
         total_excess = 0
         for j in f_v:
-            if not(ex.has_key(j)):
-                ex[j]=0
+            if j not in ex:
+                ex[j] = 0
+              
             total_excess += ex[j]
-            Delta.update({j:w*(f_v[j] - ex[j])})
+            Delta[j] = w * (f_v[j] - ex[j])
             
-            
-        if not(degree.has_key(ref_node[0])):
-            degree.update({ref_node[0]:A[ref_node[0],:].sum(axis=1)[0,0]})
-        degree_val = degree[ref_node[0]]         
+        if not(ref_node[0] in degree):
+            degree[ref_node[0]] = A.get_degree(ref_node[0])
+        
+        degree_val = degree[ref_node[0]]
         if (total_excess > (degree_val*np.exp2(i)/10)):
             print('Too much excess.', 'iteration:', i)
             break
         
         sum_ = 0
         for ttt in f_v.keys():
-            if not(degree.has_key(ttt)):
-                degree.update({ttt:A[ttt,:].sum(axis=1)[0,0]})
-            degree_val = degree[ttt]  
+            if ttt not in degree:
+                degree[ttt] = A.get_degree(ttt)
+            
+            degree_val = degree[ttt]
             if f_v[ttt] >= degree_val:
                 sum_ += degree_val
         
-        if sum_ > vol_G/3:
-            print('Too much flow.', 'iteration:', i)
-            break
+        # if sum_ > vol_G/3:
+        #     print('Too much flow.', 'iteration:', i)
+        #     break
     
     cut = []
     idx = min(cond_best_array, key=cond_best_array.get)
@@ -141,15 +168,15 @@ def round_unit_flow(A,n,l,vol_G,degree):
     
     labels = {}
     for i in l:
-        if not(labels.has_key(l[i])):
-            labels.update({l[i]:list([i])})
+        if l[i] not in labels:
+            labels[l[i]] = list([i])
         else:
             temp = labels[l[i]]
             temp.append(i)
-            labels.update({l[i]:temp}) 
+            labels[l[i]] = temp
     
     cut = {}
-    temp_prev = sp.csr_matrix((n,1),dtype=int)
+    temp_prev   = sp.csr_matrix((n,1),dtype=int)
     A_temp_prev = sp.csr_matrix((n,1),dtype=int)
     vol = {}
     vol_sum = 0
@@ -163,15 +190,16 @@ def round_unit_flow(A,n,l,vol_G,degree):
             temp_new[labels[i]] = 1
             
             for j in labels[i]:
-                if not(degree.has_key(j)):
-                    degree.update({j:A[j,:].sum(axis=1)[0,0]})
+                if not(j in degree):
+                    degree[j] = A.get_degree(j)
                 vol_sum += degree[j]
-            vol.update({i:vol_sum}) 
+              
+            vol[i] = vol_sum
             
             quad_new = temp_new.T.dot(A.dot(temp_new))[0,0]
             quad_prev_new = temp_new.T.dot(A_temp_prev)[0,0]
             
-            cut.update({i:vol_sum - quad_prev - quad_new - 2*quad_prev_new})
+            cut[i] = vol_sum - quad_prev - quad_new - 2*quad_prev_new
             
             quad_prev = quad_prev + quad_new + 2*quad_prev_new
             temp_prev = temp_prev + temp_new
@@ -179,7 +207,14 @@ def round_unit_flow(A,n,l,vol_G,degree):
             
     cond = {}
     for i in cut:
-        denominator = min(vol[i],vol_G - vol[i])
-        cond.update({i:cut[i]/denominator})
+        # denominator = min(vol[i],vol_G - vol[i])
+        denominator = vol[i]
+        cond[i] = cut[i]/denominator
     
     return cond, labels
+
+if __name__ == "__main__":
+  ref_node = [3950]
+  A = np.load('A.npy').item()
+  res = capacity_releasing_diffusion.capacity_releasing_diffusion(ref_node, A, iterations=9)
+  print(res)
