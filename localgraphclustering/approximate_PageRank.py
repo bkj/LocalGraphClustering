@@ -150,11 +150,11 @@ def approximate_PageRank(G,
         algo = proxl1PRaccel_cpp if method == "l1reg" else proxl1PRrand_cpp
         if cpp:
             if ys == None:
-                p = algo(G.ai, G.aj, G.adjacency_matrix.data, ref_nodes, G.d, G.d_sqrt, G.dn_sqrt, alpha = alpha,
-                                     rho = rho, epsilon = epsilon, maxiter = iterations, max_time = timeout, normalized_objective = normalized_objective)[2]
+                _, _, p, visited = algo(G.ai, G.aj, G.adjacency_matrix.data, ref_nodes, G.d, G.d_sqrt, G.dn_sqrt, alpha = alpha,
+                                     rho = rho, epsilon = epsilon, maxiter = iterations, max_time = timeout, normalized_objective = normalized_objective)
             else:
-                p = algo(G.ai, G.aj, G.adjacency_matrix.data, ref_nodes, G.d, G.d_sqrt, G.dn_sqrt, y = ys, alpha = alpha,
-                                     rho = rho, epsilon = epsilon, maxiter = iterations, max_time = timeout, normalized_objective = normalized_objective)[2]
+                _, _, p, visited = algo(G.ai, G.aj, G.adjacency_matrix.data, ref_nodes, G.d, G.d_sqrt, G.dn_sqrt, y = ys, alpha = alpha,
+                                     rho = rho, epsilon = epsilon, maxiter = iterations, max_time = timeout, normalized_objective = normalized_objective)
         else:
             p = fista_dinput_dense(ref_nodes, G, alpha = alpha, rho = rho, epsilon = epsilon, max_iter = iterations, max_time = timeout)
         # convert result to a sparse vector
@@ -167,6 +167,6 @@ def approximate_PageRank(G,
                 idx[it] = i
                 vals[it] = p[i]*1.0 * G.dn[i] if normalize else p[i]
                 it += 1
-        return (idx,vals)
+        return (idx,vals,visited)
     else:
         raise Exception("Unknown method, available methods are \"acl\" or \"acl_weighted\" or \"l1reg\".")

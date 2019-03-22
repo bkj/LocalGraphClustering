@@ -14,10 +14,10 @@ using namespace std;
 template<typename vtype,typename itype>
 struct Edge
 {
-    vtype v ; 
-    double flow ; 
-    double C; 
-    itype rev; 
+    vtype v ;
+    double flow ;
+    double C;
+    itype rev;
 };
 
 template <class T>
@@ -35,9 +35,9 @@ struct pair_hash {
         size_t seed = 0;
         hash_combine(seed,p.first);
         hash_combine(seed,p.second);
-        
+
         //cout << p.first << " " << p.second << " " << seed << endl;
-        
+
         // Mainly for demonstration purposes, i.e. works but is overly simple
         // In the real world, use sth. like boost.hash_combine
         return seed;
@@ -57,7 +57,7 @@ class graph{
 public:
     //declare constructors
     graph<vtype,itype>(itype,vtype,itype*,vtype*,double*,vtype,double*);
-    
+
     //common functions
     double get_degree_weighted(vtype id);
     vtype get_degree_unweighted(vtype id);
@@ -72,7 +72,7 @@ public:
     //common data
     int* level;
     vector< Edge<vtype,itype> > *adj;
-    
+
     //declare routines
 
     //functions in aclpagerank.cpp
@@ -115,12 +115,12 @@ public:
                    vtype* R, vtype nR);
     void build_list(unordered_map<vtype, vtype>& R_map, unordered_map<vtype, vtype>& degree_map, vtype src, vtype dest, itype a, itype c);
 
-    
+
     //functions in MQI_weighted.cpp
     vtype MQI_weighted(vtype nR, vtype* R, vtype* ret_set);
     void build_map_weighted(unordered_map<vtype, vtype>& R_map,unordered_map<vtype, vtype>& degree_map,
                    vtype* R, vtype nR, double* degrees);
-    void build_list_weighted(unordered_map<vtype, vtype>& R_map, unordered_map<vtype, vtype>& degree_map, vtype src, vtype dest, 
+    void build_list_weighted(unordered_map<vtype, vtype>& R_map, unordered_map<vtype, vtype>& degree_map, vtype src, vtype dest,
                    itype a, itype c, double* degrees);
 
 
@@ -128,9 +128,11 @@ public:
     vtype proxl1PRaccel(double alpha, double rho, vtype* v, vtype v_nums, double* d,
                         double* ds, double* dsinv, double epsilon, double* grad, double* p, double* y,
                         vtype maxiter,double max_time);
-                        
+
     // functions in proxl1PRrand.cpp
-    vtype proxl1PRrand(vtype num_nodes, vtype* seed, vtype num_seeds, double epsilon, double alpha, double rho, double* q, double* y, double* d, double* ds, double* dsinv, double* grad, vtype maxiter);
+    vtype proxl1PRrand(vtype num_nodes, vtype* seed, vtype num_seeds, double epsilon, double alpha, double rho, double* q, double* y, double* d, double* ds, double* dsinv, double* grad,
+        vtype maxiter, int* visited);
+
     // functions in proxl1PRrand.cpp
     vtype proxl1PRrand_unnormalized(vtype num_nodes, vtype* seed, vtype num_seeds, double epsilon, double alpha, double rho, double* q, double* y, double* d, double* ds, double* dsinv, double* grad, vtype maxiter);
     //functions in proxl1PRaccel.cpp
@@ -157,7 +159,7 @@ public:
 
     //functions for capacity releasing diffusion
     vtype capacity_releasing_diffusion(vector<vtype>& ref_node, vtype U,vtype h,vtype w,vtype iterations,vtype* cut);
-    void unit_flow(unordered_map<vtype,double>& Delta, vtype U, vtype h, vtype w, unordered_map<vtype,double>& f_v, 
+    void unit_flow(unordered_map<vtype,double>& Delta, vtype U, vtype h, vtype w, unordered_map<vtype,double>& f_v,
         unordered_map<vtype,double>& ex, unordered_map<vtype,vtype>& l);
     void round_unit_flow(unordered_map<vtype,vtype>& l, unordered_map<vtype,double>& cond,unordered_map<vtype,vector<vtype>>& labels);
 
@@ -190,10 +192,10 @@ void graph<vtype,itype>::addEdge(vtype u, vtype v, double C)
 {
     // Forward edge : 0 flow and C capacity
     Edge<vtype,itype> p{v, 0, C, (itype)adj[v].size()};
- 
+
     // Back edge : 0 flow and 0 capacity
     Edge<vtype,itype> q{u, 0, 0, (itype)adj[u].size()};
- 
+
     adj[u].push_back(p);
     adj[v].push_back(q); // reverse edge
 }
@@ -229,7 +231,7 @@ pair<itype, itype> graph<vtype,itype>::get_stats(unordered_map<vtype, vtype>& R_
             }
         }
     }
-    
+
     pair<itype, itype> set_stats (curvol, curcutsize);
     return set_stats;
 }
@@ -249,7 +251,7 @@ pair<double, double> graph<vtype,itype>::get_stats_weighted(unordered_map<vtype,
             }
         }
     }
-    
+
     pair<double, double> set_stats (curvol, curcutsize);
     return set_stats;
 }

@@ -43,7 +43,7 @@ def _setup_proxl1PRrand_args(vtypestr, itypestr, fun):
                   ndpointer(float_type, flags="C_CONTIGUOUS"),
                   ndpointer(float_type, flags="C_CONTIGUOUS"),
                   ndpointer(float_type, flags="C_CONTIGUOUS"),ctypes_vtype,ctypes_vtype,
-                  float_type, bool_type]
+                  float_type, bool_type, ndpointer(itype, flags="C_CONTIGUOUS")]
 
     return fun
 
@@ -81,10 +81,12 @@ def proxl1PRrand_cpp(ai,aj,a,ref_node,d,ds,dsinv,y=None,alpha = 0.15,rho = 1.0e-
     else:
         new_y = np.array(y,dtype=float_type)
 
-    not_converged=fun(n,ai,aj,a,alpha,rho,ref_node,len(ref_node),d,ds,dsinv,epsilon,grad,p,new_y,maxiter,0,max_time, normalized_objective)
-
+    visited = np.zeros(n, dtype=itype)
+    
+    not_converged=fun(n,ai,aj,a,alpha,rho,ref_node,len(ref_node),d,ds,dsinv,epsilon,grad,p,new_y,maxiter,0,max_time, normalized_objective, visited)
+    
     if y != None:
         for i in range(n):
             y[i] = new_y[i]
 
-    return (not_converged,grad,p)
+    return (not_converged,grad,p,visited)
